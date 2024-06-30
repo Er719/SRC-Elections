@@ -1,4 +1,4 @@
-import React, { useState, useEffect} from "react";
+import React, { useState, useEffect, createContext } from "react";
 import Web3Modal from "web3modal";
 import { ethers } from "ethers";
 import { create as ipfsHttpClient } from "ipfs-http-client";
@@ -13,22 +13,16 @@ const fetchContract = (signerOrProvider) => {
   return new ethers.Contract(VotingAddress, VotingAddressABI, signerOrProvider);
 };
 
-export const VotingContext = React.createContext();
+export const VotingContext = createContext();
 
 export const VotingProvider = ({ children }) => {
   const router = useRouter();
   const [currentAccount, setCurrentAccount] = useState([]);
-  const [candidateLength, setCandidateLength] = useState('');
-  const pushCandidate = [];
-  const candidateIndex = [];
   const [candidateArray, setCandidateArray] = useState([]);
-  const [error, setError] = useState('');
-  const highestVote = [];
-
-  const pushVoter = [];
   const [voterArray, setVoterArray] = useState([]);
-  const [voterLength, setVoterLength] = useState('');
-  const [voterAddress, setVoterAddress] = useState([]);
+  const [error, setError] = useState('');
+  const [winner, setWinner] = useState(null);
+  const [electionEndTime, setElectionEndTime] = useState(null);
 
   const checkIfWalletIsConnected = async () => {
     if (!window.ethereum) return setError("Please install Metamask");
@@ -126,7 +120,7 @@ export const VotingProvider = ({ children }) => {
       const voterTx = await contract.voterRight(address, name, url, fileUrl);
       await voterTx.wait();
 
-      router.push("/");
+      router.push("/voterList");
     } catch (error) {
       console.error("Error creating voter:", error);
     }
@@ -141,8 +135,6 @@ export const VotingProvider = ({ children }) => {
       const contract = fetchContract(signer);
 
       const voterListData = await contract.getVoterList();
-      setVoterAddress(voterListData);
-
       const voters = await Promise.all(
         voterListData.map(async (address) => {
           return await contract.getVoterdata(address);
@@ -157,7 +149,6 @@ export const VotingProvider = ({ children }) => {
 
   const giveVote = async (id) => {
     try {
-      // Assuming id has the correct structure { address, id }
       const voterAddress = id.address;
       const voterId = id.id;
   
@@ -167,7 +158,6 @@ export const VotingProvider = ({ children }) => {
       const signer = provider.getSigner();
       const contract = fetchContract(signer);
   
-      // Assuming `vote` is the method to call on the contract
       const tx = await contract.vote(voterAddress, voterId);
       await tx.wait();
   
@@ -202,7 +192,7 @@ export const VotingProvider = ({ children }) => {
       const url = `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
 
       const candidateTx = await contract.setCandidate(address, profile, name, fileUrl, url);
-      candidateTx.wait();
+      await candidateTx.wait();
 
       router.push("/");
     } catch (error) {
@@ -232,6 +222,72 @@ export const VotingProvider = ({ children }) => {
     }
   };
 
+  const setElectionTimer = async (timeInSeconds) => {
+    try {
+      const unixTimestamp = Math.floor(new Date(timeInSeconds).getTime() / 1000);
+  
+      // Connect to the user's wallet
+      const web3Modal = new Web3Modal();
+      const connection = await web3Modal.connect();
+      const provider = new ethers.providers.Web3Provider(connection);
+      const signer = provider.getSigner();
+  
+      // Fetch the contract instance
+      const contract = fetchContract(signer);
+  
+      // Convert Unix timestamp to BigNumber
+      const timeBigNumber = ethers.BigNumber.from(unixTimestamp);
+  
+      // Call the contract function to set the election timer
+      const tx = await contract.setElectionTimer(timeBigNumber);
+      await tx.wait();
+  
+      // Update electionEndTime state with the calculated end time
+      const endTimeString = new Date(timeInSeconds).toISOString();
+      setElectionEndTime(endTimeString);
+  
+      // Log electionEndTime to console for verification
+      console.log("Election timer set successfully. Election End Time:", endTimeString);
+    } catch (error) {
+      console.error("Error setting election timer:", error);
+    }
+  };
+
+  const getElectionEndTime = async () => {
+    try {
+      const web3Modal = new Web3Modal();
+      const connection = await web3Modal.connect();
+      const provider = new ethers.providers.Web3Provider(connection);
+      const signer = provider.getSigner();
+      const contract = fetchContract(signer);
+
+      const endTime = await contract.electionEndTime();
+      console.log("Fetched election end time from contract (in seconds):", endTime.toString());
+      return endTime.toNumber(); // Ensure it's a number
+    } catch (error) {
+      console.error("Error fetching election end time:", error);
+    }
+  };
+  
+  const announceWinner = async () => {
+    try {
+      const web3Modal = new Web3Modal();
+      const connection = await web3Modal.connect();
+      const provider = new ethers.providers.Web3Provider(connection);
+      const signer = provider.getSigner();
+      const contract = fetchContract(signer);
+  
+      // Log electionEndTime before calling the contract function
+      const currentEndTime = await contract.getElectionEndTime();
+      console.log("Current electionEndTime:", currentEndTime.toNumber());
+  
+      const winnerAddress = await contract.announceWinner();
+      setWinner(winnerAddress);
+    } catch (error) {
+      console.error("Error announcing winner:", error);
+    }
+  };  
+
   useEffect(() => {
     checkIfWalletIsConnected();
   }, []);
@@ -249,12 +305,14 @@ export const VotingProvider = ({ children }) => {
         getNewCandidate,
         error,
         voterArray,
-        voterAddress,
         currentAccount,
         candidateArray,
         uploadToIPFSCandidate,
-        candidateLength,
-        voterLength,
+        setElectionTimer,
+        announceWinner,
+        winner,
+        electionEndTime,
+        getElectionEndTime
        }}
        > 
         {children} 
@@ -267,3 +325,5 @@ const Voter = () => {
     <div>Voter</div>
   )
 }
+
+export default Voter;

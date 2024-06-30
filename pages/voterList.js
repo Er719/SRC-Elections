@@ -14,6 +14,9 @@ const VoterList = () => {
 
   return (
     <div className={Style.voterList}>
+      <div className={Style.winner_info1}>
+            <h1>Voter List</h1>
+            </div>
         <VoterCard voterArray={voterArray} />
     </div>
   );

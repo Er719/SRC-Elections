@@ -7,7 +7,7 @@ import images from '../../assets/';
 import voterCardStyle from './voterCard.module.css';
 
 const voterCard = ({voterArray}) => {
-  return (<div>
+  return (<div className = {Style.card}>
     {voterArray.map((el,i) =>(
       <div className={Style.card_box}>
         <div className={Style.image}>
@@ -21,7 +21,7 @@ const voterCard = ({voterArray}) => {
           <p>Address: {el[3].slice(0,30)}...</p>
           <p>details</p>
           <p className={voterCardStyle.vote_Status}>
-            {el[6] == true ? "You already voted" : "Not Voted"}
+            {el[6] == true ? "Voted" : "Not Voted"}
           </p>
         </div>
       </div>

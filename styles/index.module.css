@@ -15,11 +15,36 @@
     background-color: #231e39;
     padding: 1rem;
     border-radius: .2rem;
-    
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
     align-items: center;
+}
+
+.winner_info2{
+    background-color: #fff;
+    padding: 1rem;
+    border-radius: .2rem;
+    color: yellow;
+    display: grid;
+    gap: 1rem;
+    align-items: center;
+    text-align: center;
+}
+
+.winner_info3{
+    background-color: #231e39;
+    width: 70%;
+    padding: 1rem;
+    border-radius: .2rem;
+    display: grid;
+    color: #fff;
+    grid-template-columns: repeat(2, 1fr);
+    align-items: center;
+    margin: 0 auto;
+    padding-left: 2rem;
+    padding-top: 2rem;
+    padding-right: 2rem;
 }
 
 .winner_message{
@@ -44,6 +69,7 @@
     background-color: #9a02ac;
     font-size: 1rem;
     padding: .1rem 1rem;
+    text-align: center;
 }
 
 .candidate_list p{
